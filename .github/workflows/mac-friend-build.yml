@@ -40,16 +40,16 @@ jobs:
 
       - name: Inspect build outputs
         run: |
-          echo "Contents of MAC/release:"
+          echo "Contents of MAC/dist:"
+          find dist -maxdepth 3 -type f | sort || true
+          echo "Contents of MAC/release if it exists:"
           find release -maxdepth 3 -type f | sort || true
-          echo "Contents of repo-root release if it exists:"
-          find ../release -maxdepth 3 -type f | sort || true
 
       - name: Collect artifacts into ci-output
         run: |
           rm -rf ../ci-output
           mkdir -p ../ci-output
-          find release ../release -type f \( -name '*.dmg' -o -name '*.zip' \) -print -exec cp '{}' ../ci-output/ \; || true
+          find dist release ../release -type f \( -name '*.dmg' -o -name '*.zip' \) -print -exec cp '{}' ../ci-output/ \; || true
           echo "Collected files:"
           find ../ci-output -maxdepth 2 -type f | sort || true
 
