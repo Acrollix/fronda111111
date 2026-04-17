@@ -1,6 +1,39 @@
+appId: studio.fronda.desktop
+productName: FRONDA
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - dist/**/*
+  - dist-electron/**/*
+  - node_modules/sql.js/dist/sql-wasm.wasm
+  - package.json
+
+extraFiles:
+  - from: build/icon.ico
+    to: icon.ico
+  - from: build/icon.png
+    to: icon.png
+  - from: portable.mode
+    to: portable.mode
+  - from: README_START.txt
+    to: README_START.txt
+
+asar: true
+
+asarUnpack:
+  - node_modules/sql.js/dist/sql-wasm.wasm
+
 mac:
   identity: null
   notarize: false
+  icon: build/icon.icns
+  category: public.app-category.productivity
+  hardenedRuntime: false
+  gatekeeperAssess: false
+  minimumSystemVersion: "11.0"
   artifactName: FRONDA-${version}-mac-friend-${arch}.${ext}
 
 dmg:
