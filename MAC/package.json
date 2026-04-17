@@ -1,0 +1,132 @@
+{
+  "name": "fronda-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "FRONDA portable desktop MVP",
+  "main": "dist-electron/main.js",
+  "author": "OpenAI Codex",
+  "license": "UNLICENSED",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "concurrently -k \"npm:dev:renderer\" \"npm:dev:main\" \"npm:dev:electron\"",
+    "dev:renderer": "vite",
+    "dev:main": "tsup src/main/main.ts src/main/preload.ts --format cjs --target node20 --sourcemap --out-dir dist-electron --watch --clean --external electron",
+    "dev:electron": "wait-on tcp:5173 file:dist-electron/main.js && electron .",
+    "build": "npm run build:renderer && npm run build:main",
+    "build:renderer": "vite build",
+    "build:main": "tsup src/main/main.ts src/main/preload.ts --format cjs --target node20 --sourcemap --out-dir dist-electron --clean --external electron",
+    "prepare:mac": "node ./scripts/prepare-mac-build.cjs",
+    "package:dir": "npm run build && electron-builder --dir",
+    "package:portable": "npm run build && electron-builder --win portable",
+    "package:mac:dir": "npm run prepare:mac && npm run build && electron-builder --mac dir --universal",
+    "package:mac:zip": "npm run prepare:mac && npm run build && electron-builder --mac zip --universal",
+    "package:mac:dmg": "npm run prepare:mac && npm run build && electron-builder --mac dmg --universal",
+    "package:mac": "npm run prepare:mac && npm run build && electron-builder --mac dmg zip --universal",
+    "package:mac:friend:dir": "npm run prepare:mac && npm run build && electron-builder --config build/electron-builder.mac-friend.yml --mac dir --universal",
+    "package:mac:friend:zip": "npm run prepare:mac && npm run build && electron-builder --config build/electron-builder.mac-friend.yml --mac zip --universal",
+    "package:mac:friend:dmg": "npm run prepare:mac && npm run build && electron-builder --config build/electron-builder.mac-friend.yml --mac dmg --universal",
+    "package:mac:friend": "npm run prepare:mac && npm run build && electron-builder --config build/electron-builder.mac-friend.yml --mac dmg zip --universal",
+    "lint:types": "tsc --noEmit",
+    "start": "electron ."
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "sql.js": "^1.13.0",
+    "xlsx": "^0.18.5",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@types/sql.js": "^1.4.10",
+    "@vitejs/plugin-react": "^6.0.1",
+    "concurrently": "^9.2.1",
+    "electron": "^41.0.3",
+    "electron-builder": "^26.8.1",
+    "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vite": "^8.0.1",
+    "wait-on": "^9.0.4"
+  },
+  "build": {
+    "appId": "studio.fronda.desktop",
+    "productName": "FRONDA",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "node_modules/sql.js/dist/sql-wasm.wasm",
+      "package.json"
+    ],
+    "extraFiles": [
+      {
+        "from": "build/icon.ico",
+        "to": "icon.ico"
+      },
+      {
+        "from": "build/icon.png",
+        "to": "icon.png"
+      },
+      {
+        "from": "portable.mode",
+        "to": "portable.mode"
+      },
+      {
+        "from": "README_START.txt",
+        "to": "README_START.txt"
+      }
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/sql.js/dist/sql-wasm.wasm"
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "signAndEditExecutable": false,
+      "verifyUpdateCodeSignature": false,
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "mac": {
+      "icon": "build/icon.icns",
+      "category": "public.app-category.productivity",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "artifactName": "FRONDA-${version}-mac-${arch}.${ext}",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.inherit.plist",
+      "minimumSystemVersion": "11.0",
+      "notarize": true
+    },
+    "portable": {
+      "artifactName": "FRONDA-${version}-portable.${ext}"
+    }
+  }
+}

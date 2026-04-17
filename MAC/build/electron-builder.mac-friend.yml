@@ -1,0 +1,7 @@
+mac:
+  identity: null
+  notarize: false
+  artifactName: FRONDA-${version}-mac-friend-${arch}.${ext}
+
+dmg:
+  sign: false

@@ -1,0 +1,73 @@
+﻿export const CLEAN_HEADER_ALIASES = {
+  nickname: ["ник", "nickname", "nick", "никнейм", "сценическое имя", "ник/имя"],
+  real_name: ["имя", "real_name", "реальное имя", "фио", "full name", "настоящее имя"],
+  display_name: ["display name", "display_name", "отображаемое имя", "имя для отображения", "credit name", "имя для поста"],
+  mention: ["mention", "@", "собачка", "упоминание", "telegram", "tg", "тг", "@mention"],
+  mention_id: ["mention_id", "id упоминания", "telegram id", "tg id", "mention id"],
+  vk_slug: ["vk slug", "vk_slug", "вк", "vk", "slug", "vk nick", "короткий адрес vk"],
+  vk_url: ["vk url", "vk_url", "ссылка vk", "ссылка вк", "url", "vk link", "vk ссылка"],
+  department: ["отдел", "department", "dep", "команда", "блок", "направление", "департамент"],
+  role: ["роль", "roles", "role", "функция", "позиция", "задача", "участие"],
+  skill: ["skill", "навык", "skills", "навыки", "скилл", "скиллы"],
+  specialization: ["specialization", "специализация", "specializations", "специализации", "спец"],
+  equipment: ["equipment", "оборудование", "сетап", "setup", "микрофон", "техника", "железо"],
+  voice_sample: ["voice sample", "проба голоса", "демо", "sample", "сэмпл", "голос", "voice"],
+  availability: ["availability", "доступность", "availability note", "занятость", "доступен"],
+  participant_status: ["status", "статус", "participant status", "резерв", "блок", "неактивен", "active status"],
+  release_title: ["релиз", "release", "project", "проект", "название релиза", "название проекта", "title", "тайтл", "аниме"],
+  release_type: ["тип релиза", "release type", "type", "формат", "категория"],
+  release_status: ["статус релиза", "release status", "production status", "этап", "состояние", "статус проекта"],
+  season: ["season", "сезон"],
+  episode: ["episode", "серия", "эпизод", "эп.", "серии"],
+  year: ["year", "год"],
+  curator: ["curator", "куратор", "ответственный", "ведущий", "supervisor"],
+  platform: ["platform", "площадка", "площадки", "где смотреть", "платформа", "site", "стриминг"],
+  genre: ["genre", "жанр", "жанры"],
+  tag: ["tag", "теги", "hashtags", "хэштеги", "метки"],
+  external_source: [
+    "fsg",
+    "внешняя команда",
+    "источник",
+    "translation team",
+    "external source",
+    "партнер",
+    "партнёр",
+    "переводчик",
+    "переводчики"
+  ],
+  note: ["note", "заметка", "notes", "рекомендация", "комментарий режиссуры", "заметки"],
+  comment: ["comment", "комментарий", "примечание", "внутренние заметки"],
+  remark: ["remark", "замечание"],
+  warning: ["warning", "предупреждение", "warn"],
+  reward: ["reward", "поощрение", "награда", "вклад", "инициатива", "похвала", "приоритет"]
+} as const;
+
+export const CLEAN_ROLE_COLUMNS = [
+  { label: "озвучка", aliases: ["озвучка", "voice", "voice cast", "роли", "мужские голоса", "женские голоса", "голоса", "каст"] },
+  { label: "перевод", aliases: ["перевод", "translation", "translator", "переводчик", "переводчики"] },
+  { label: "сведение", aliases: ["сведение", "mix", "mixing", "технарь", "звук", "звукарь"] },
+  { label: "тайминг", aliases: ["тайминг", "timing"] },
+  { label: "оформление", aliases: ["оформление", "design", "art", "дизайн", "обложка"] },
+  { label: "редактура", aliases: ["редактура", "edit", "editor", "редактор"] },
+  { label: "караоке", aliases: ["караоке", "karaoke"] },
+  { label: "куратор", aliases: ["куратор", "curator", "ответственный"] }
+] as const;
+
+export const CLEAN_SECTION_MARKERS = [
+  "в работе",
+  "в планах",
+  "вышедшие",
+  "миники",
+  "полный метр",
+  "фильмы",
+  "архив",
+  "завершенные",
+  "завершённые",
+  "утерянные",
+  "пауза",
+  "заморожено",
+  "замороженные",
+  "дроп",
+  "проекты",
+  "онгоинг"
+] as const;
