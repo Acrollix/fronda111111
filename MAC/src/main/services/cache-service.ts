@@ -86,6 +86,15 @@ export class CacheService {
     db.close();
   }
 
+  async clear(): Promise<void> {
+    const db = await this.open();
+    db.run("DELETE FROM participant_list;");
+    db.run("DELETE FROM release_list;");
+    db.run("DELETE FROM system_state;");
+    await this.persist(db);
+    db.close();
+  }
+
   async loadSnapshot(): Promise<WorkspaceSnapshot | null> {
     const db = await this.open();
     const row = db.exec("SELECT value FROM system_state WHERE key = 'snapshot';");

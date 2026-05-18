@@ -116,6 +116,11 @@ function buildPostGeneratorOptions(snapshot: WorkspaceSnapshot) {
   };
 }
 
+function normalizeWorkspacePathForCompare(value: string): string {
+  const normalized = path.resolve(value).replace(/[\\/]+$/g, "");
+  return process.platform === "win32" ? normalized.toLowerCase() : normalized;
+}
+
 export class FrondaAppService {
   private readonly portablePaths = new PortablePathsService();
   private readonly workspaceService = new WorkspaceService();
@@ -317,6 +322,11 @@ export class FrondaAppService {
     }
     const normalizedSharedPath = path.resolve(input.sharedDatasetPath);
     const normalizedBackupPath = path.resolve(input.backupDirectoryPath);
+    const previousWorkspace = await this.portablePaths.loadWorkspaceConfig();
+    const workspaceChanged = previousWorkspace
+      ? normalizeWorkspacePathForCompare(previousWorkspace.sharedDatasetPath)
+        !== normalizeWorkspacePathForCompare(normalizedSharedPath)
+      : false;
     if (!input.backupDirectoryPath.trim()) {
       return {
         valid: false,
@@ -338,6 +348,9 @@ export class FrondaAppService {
         warnings: []
       };
     }
+    if (workspaceChanged) {
+      await this.clearLocalWorkspaceCache();
+    }
     await fs.mkdir(normalizedBackupPath, { recursive: true });
     const workspace: LocalWorkspaceConfig = {
       sharedDatasetPath: normalizedSharedPath,
@@ -348,8 +361,16 @@ export class FrondaAppService {
       machineLabel: this.portablePaths.currentMachineLabel
     };
     await this.portablePaths.saveWorkspaceConfig(workspace);
-    await this.syncWorkspace(true);
-    return validation;
+    const syncStatus = await this.syncWorkspace(true);
+    return {
+      ...validation,
+      mode: syncStatus.mode,
+      warnings: Array.from(new Set([...validation.warnings, ...syncStatus.issues])),
+      manifest: {
+        ...validation.manifest,
+        dataset_revision: syncStatus.datasetRevision ?? validation.manifest.dataset_revision
+      }
+    };
   }
 
   async loadWorkspaceSnapshot(): Promise<WorkspaceSnapshot | null> {
@@ -358,11 +379,16 @@ export class FrondaAppService {
       return null;
     }
     const cachedSnapshot = await this.cacheService.loadSnapshot();
-    if (cachedSnapshot) {
+    const validation = await this.workspaceService.validateWorkspace(workspace.sharedDatasetPath);
+    if (
+      cachedSnapshot
+      && validation.manifest
+      && cachedSnapshot.manifest.dataset_id === validation.manifest.dataset_id
+      && cachedSnapshot.manifest.dataset_revision === validation.manifest.dataset_revision
+    ) {
       return cachedSnapshot;
     }
-    const status = await this.getSyncStatus(workspace.sharedDatasetPath);
-    if (status.mode === "RO_OFFLINE" || status.mode === "RO_RECOVERY") {
+    if (!validation.valid || validation.mode === "RO_OFFLINE" || validation.mode === "RO_RECOVERY") {
       return cachedSnapshot;
     }
     await this.syncWorkspace(false);
@@ -507,12 +533,16 @@ export class FrondaAppService {
       force ||
       !localManifest ||
       repairedIndexes.repaired ||
+      localManifest.dataset_id !== effectiveManifest.dataset_id ||
       localManifest.dataset_revision !== effectiveManifest.dataset_revision;
 
     if (shouldRebuild) {
       try {
         const fileRegistry = await this.workspaceService.readFileRegistry(workspace.sharedDatasetPath);
-        const fallbackSnapshot = await this.cacheService.loadSnapshot().catch(() => null);
+        const cachedFallbackSnapshot = await this.cacheService.loadSnapshot().catch(() => null);
+        const fallbackSnapshot = cachedFallbackSnapshot?.manifest.dataset_id === effectiveManifest.dataset_id
+          ? cachedFallbackSnapshot
+          : null;
         const snapshot = await this.repository.loadWorkspaceSnapshot(
           workspace.sharedDatasetPath,
           effectiveManifest,
@@ -4106,6 +4136,14 @@ export class FrondaAppService {
       touched_domains: touchedDomains
     });
     return manifest;
+  }
+
+  private async clearLocalWorkspaceCache(): Promise<void> {
+    await this.cacheService.clear();
+    await Promise.all([
+      removePath(path.join(this.portablePaths.portableDataPath, PORTABLE_CACHE_FILES.lastSeenManifest)),
+      removePath(path.join(this.portablePaths.portableDataPath, PORTABLE_CACHE_FILES.lastSeenRegistry))
+    ]);
   }
 
   private async requireWorkspace(): Promise<LocalWorkspaceConfig> {
