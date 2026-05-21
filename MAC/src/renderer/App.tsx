@@ -212,6 +212,19 @@ const DEFAULT_APP_SETTINGS: AppSettings = {
 const AUTO_REFRESH_INTERVAL_MS = 30000;
 const AUTO_REFRESH_MIN_GAP_MS = 12000;
 const AUTO_REFRESH_FAILURE_BACKOFF_MS = 45000;
+const STARTUP_OPERATION_TIMEOUT_MS = 12000;
+
+function withStartupTimeout<T>(promise: Promise<T>, message: string): Promise<T> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<never>((_resolve, reject) => {
+    timeout = setTimeout(() => reject(new Error(message)), STARTUP_OPERATION_TIMEOUT_MS);
+  });
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+  });
+}
 
 function isDirectoryEditorRecord(value: unknown): value is DirectoryEditorRecord {
   return Boolean(value) && typeof value === "object" && typeof (value as { id?: unknown }).id === "string";
@@ -570,10 +583,35 @@ export function App() {
       setBackupInput(state.workspace?.backupDirectoryPath ?? "");
       setWizardMessage(state.configured ? null : state.workspaceSelectionReason ?? null);
       if (state.workspace && state.configured) {
-        const startupSyncStatus = await window.fronda.syncWorkspace(true);
-        setSyncStatus(normalizeSyncStatusForUi(startupSyncStatus));
-        const loadedSnapshot = await window.fronda.loadWorkspaceSnapshot();
-        setSnapshot(loadedSnapshot);
+        let startupHadIssue = false;
+        setSyncStatus(normalizeSyncStatusForUi(state.syncStatus ?? null));
+        setSnapshot(null);
+        setLoadingState("ready");
+        try {
+          const startupSyncStatus = await withStartupTimeout(
+            window.fronda.syncWorkspace(true),
+            "Рабочая папка слишком долго отвечает. Проверьте синхронизацию облака или смените рабочую папку через меню."
+          );
+          setSyncStatus(normalizeSyncStatusForUi(startupSyncStatus));
+          const loadedSnapshot = await withStartupTimeout(
+            window.fronda.loadWorkspaceSnapshot(),
+            "Локальный кэш не успел загрузиться. Нажмите «Обновить данные» после синхронизации облака."
+          );
+          setSnapshot(loadedSnapshot);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Рабочая папка временно недоступна.";
+          startupHadIssue = true;
+          setSyncStatus(normalizeSyncStatusForUi({
+            mode: "RO_STALE",
+            message,
+            workspacePath: state.workspace.sharedDatasetPath,
+            issues: [message]
+          }));
+          setAppNotice({
+            tone: "warning",
+            text: message
+          });
+        }
         lastAutoRefreshAtRef.current = Date.now();
         lastAutoRefreshFailureAtRef.current = 0;
         const yandexDiskStatus = await window.fronda.checkYandexDisk(state.workspace.sharedDatasetPath);
@@ -582,7 +620,7 @@ export function App() {
             tone: "warning",
             text: yandexDiskStatus.message ?? "Яндекс Диск не запущен. Изменения не будут своевременно выгружаться в облако."
           });
-        } else {
+        } else if (!startupHadIssue) {
           setAppNotice(null);
         }
       } else {

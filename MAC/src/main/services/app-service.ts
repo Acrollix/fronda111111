@@ -121,6 +121,18 @@ function normalizeWorkspacePathForCompare(value: string): string {
   return process.platform === "win32" ? normalized.toLowerCase() : normalized;
 }
 
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+  let timeout: NodeJS.Timeout | undefined;
+  const timeoutPromise = new Promise<never>((_resolve, reject) => {
+    timeout = setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+  });
+}
+
 export class FrondaAppService {
   private readonly portablePaths = new PortablePathsService();
   private readonly workspaceService = new WorkspaceService();
@@ -240,7 +252,16 @@ export class FrondaAppService {
       };
       await this.portablePaths.saveWorkspaceConfig(refreshedWorkspace);
       state.workspace = refreshedWorkspace;
-      state.syncStatus = await this.getSyncStatus(state.workspace.sharedDatasetPath);
+      state.syncStatus = await withTimeout(
+        this.getSyncStatus(state.workspace.sharedDatasetPath),
+        8000,
+        "Старая рабочая папка слишком долго отвечает. Откройте приложение и выберите папку заново или дождитесь синхронизации облака."
+      ).catch((error) => ({
+        mode: "RO_STALE" as const,
+        message: error instanceof Error ? error.message : "Рабочая папка временно недоступна.",
+        workspacePath: state.workspace?.sharedDatasetPath,
+        issues: [error instanceof Error ? error.message : "Рабочая папка временно недоступна."]
+      }));
     }
     return state;
   }
